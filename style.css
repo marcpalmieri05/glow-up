@@ -162,3 +162,15 @@ details .sub { margin-top: 12px; }
 .tip:first-child { border-top: 0; padding-top: 0; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* --- NUOVI STILI PER SALUTE E ALLENAMENTO --- */
+.water-grid { display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; margin-top: 16px; }
+.drop { flex: 1; min-width: 40px; aspect-ratio: 1; border-radius: 14px; border: 2px solid var(--line); background: transparent; font-size: 1.6rem; display: grid; place-items: center; cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); filter: grayscale(100%); opacity: 0.4; padding: 0; }
+.drop.on { filter: grayscale(0%); opacity: 1; border-color: var(--a); background: var(--halo); transform: scale(1.05); }
+
+.reward-box { margin-top: 16px; padding: 18px; border-radius: 18px; background: var(--surf); border: 1px solid var(--line); text-align: center; font-weight: 600; font-size: 1.15rem; color: var(--ink); box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+.reward-box small { font-weight: 400; font-size: 0.85rem; color: var(--mut); display: block; margin-top: 4px; }
+
+.cat-sel { display: flex; gap: 8px; margin-top: 4px; }
+.cat-btn { flex: 1; padding: 12px 10px; font-size: 0.95rem; border: 1px solid var(--line); background: var(--bg); border-radius: 16px; color: var(--mut); transition: all 0.2s; }
+.cat-btn.active { border-color: var(--a); background: var(--halo); color: var(--a); font-weight: 700; box-shadow: 0 2px 8px var(--halo); }

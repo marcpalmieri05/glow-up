@@ -15,21 +15,23 @@ function dl(d){return d.toLocaleDateString('it-IT',{day:'numeric',month:'long'})
 function dlong(d){var s=d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});return s.charAt(0).toUpperCase()+s.slice(1)}
 function fh(h){var m=Math.round(h*60);if(m<60)return m+' min';var r=m%60;return Math.floor(m/60)+' h'+(r?' '+r+' min':'')}
 
-function def(){ return {name:'', theme:'auto', onb:0, tour:0, week:[2,2,2,2,2,3,3], off:[], goals:[], work:{}}; }
+function def(){ return {name:'', theme:'auto', onb:0, tour:0, week:[2,2,2,2,2,3,3], off:[], goals:[], work:{}, health:{}, weights:[]}; }
 
 function norm(r){
   if(!r||!Array.isArray(r.goals)||!Array.isArray(r.week)||r.week.length!==7)return null;
   r.week=r.week.map(function(v){return Math.min(16,Math.max(0,Number(v)||0))});
-  r.goals=r.goals.filter(function(g){return g&&g.id&&g.name&&RE.test(g.due)}).map(function(g){return {id:String(g.id),name:String(g.name).slice(0,40), due:g.due, completed:!!g.completed}});
+  r.goals=r.goals.filter(function(g){return g&&g.id&&g.name&&RE.test(g.due)}).map(function(g){return {id:String(g.id),name:String(g.name).slice(0,40), due:g.due, completed:!!g.completed, cat:g.cat||'study'}});
   r.off=Array.isArray(r.off)?r.off.filter(function(d){return RE.test(d)}):[];
   if(!r.work||typeof r.work!=='object')r.work={};
-  return {name:String(r.name||'').slice(0,30), theme:r.theme||'auto', onb:r.onb||0, tour:r.tour||0, week:r.week, off:r.off, goals:r.goals, work:r.work};
+  if(!r.health||typeof r.health!=='object')r.health={};
+  if(!Array.isArray(r.weights))r.weights=[];
+  return {name:String(r.name||'').slice(0,30), theme:r.theme||'auto', onb:r.onb||0, tour:r.tour||0, week:r.week, off:r.off, goals:r.goals, work:r.work, health:r.health, weights:r.weights};
 }
 
 function load(){var r=null;try{r=norm(JSON.parse(localStorage.getItem(KEY)))}catch(e){}return r||def()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
-var S=load(), view='oggi', edId=null, shT=null;
+var S=load(), view='oggi', edId=null, shT=null, wChart=null;
 
 function showToast(msg, icon) {
   var box = $('toast-box');
@@ -50,6 +52,7 @@ function applyTheme(){
   document.querySelectorAll('[data-a="theme"]').forEach(function(b){
     b.classList.toggle('active-theme', b.dataset.v === S.theme);
   });
+  if(view === 'salute') renderChart(); // Ricolora il grafico se cambi tema
 }
 applyTheme();
 
@@ -102,7 +105,8 @@ function renderToday(){
     var assigned = todayPlan.alloc[x.id] || 0;
     var dd = wt[x.id] || 0;
     var done = dd >= assigned && assigned > 0;
-    return {done:done,h:'<button class="task'+(done?' done':'')+'" data-a="task" data-g="'+x.id+'" data-a-val="'+(assigned>0?assigned:1)+'" aria-pressed="'+done+'"><span class="tick">'+(done?CHECK:'')+'</span><span class="tx"><span class="nm">'+esc(x.name)+'</span><span class="wkl">'+(done?'Completato per oggi':(dd>0?'Iniziato ('+fh(dd)+')':'Richiede '+fh(assigned)))+'</span></span></button>'};
+    var icon = x.cat === 'fitness' ? '🏃‍♂️ ' : '📚 ';
+    return {done:done,h:'<button class="task'+(done?' done':'')+'" data-a="task" data-g="'+x.id+'" data-a-val="'+(assigned>0?assigned:1)+'" aria-pressed="'+done+'"><span class="tick">'+(done?CHECK:'')+'</span><span class="tx"><span class="nm">'+icon+esc(x.name)+'</span><span class="wkl">'+(done?'Completato per oggi':(dd>0?'Iniziato ('+fh(dd)+')':'Richiede '+fh(assigned)))+'</span></span></button>'};
   }).sort(function(a,b){return a.done-b.done});
   
   $('tg').innerHTML = !hasGoals ? renderEmpty('Nessun obiettivo', 'Aggiungi il tuo primo traguardo, ci penso io a dirti cosa fare.', '🎯', 'Nuovo Obiettivo') 
@@ -127,13 +131,15 @@ function renderPiano(){
   $('gl').innerHTML = !C.active.length && !S.goals.length ? renderEmpty('Piano vuoto', 'Inizia creando il tuo primo progetto.', '✨', 'Aggiungi')
                     : (C.active.length ? C.active.map(function(x){
                         var dd = gdone(x.id);
-                        return '<button class="goal" data-a="editg" data-g="'+x.id+'"><span class="bt"><span class="bn">'+esc(x.name)+'</span></span><span class="wkl">Scadenza: '+dl(parse(x.due))+(dd>0?' • '+fh(dd)+' dedicate':'')+'</span></button>';
+                        var icon = x.cat === 'fitness' ? '🏃‍♂️ ' : '';
+                        return '<button class="goal" data-a="editg" data-g="'+x.id+'"><span class="bt"><span class="bn">'+icon+esc(x.name)+'</span></span><span class="wkl">Scadenza: '+dl(parse(x.due))+(dd>0?' • '+fh(dd)+' dedicate':'')+'</span></button>';
                       }).join('') : renderEmpty('Nessun obiettivo in corso', 'Hai completato tutto.', '🏆'));
   
   var comp = S.goals.filter(function(g){ return g.completed; });
   $('sec-comp').hidden = comp.length === 0;
   $('gl-comp').innerHTML = comp.map(function(x){
-    return '<button class="goal completed" data-a="editg" data-g="'+x.id+'"><span class="bt"><span class="bn">✅ '+esc(x.name)+'</span></span><span class="wkl">Completato! ('+fh(gdone(x.id))+' dedicate in totale)</span></button>';
+    var icon = x.cat === 'fitness' ? '🏃‍♂️ ' : '';
+    return '<button class="goal completed" data-a="editg" data-g="'+x.id+'"><span class="bt"><span class="bn">✅ '+icon+esc(x.name)+'</span></span><span class="wkl">Completato! ('+fh(gdone(x.id))+' dedicate in totale)</span></button>';
   }).join('');
 
   $('ndsec').hidden=!S.goals.length;
@@ -146,16 +152,83 @@ function renderPiano(){
   $('nd').innerHTML=nd;
 }
 
+// Logica per Salute & Grafici
+function renderHealth(){
+  var k = fmt(tdy());
+  var h = S.health[k] || {water: 0, steps: 0};
+  S.health[k] = h;
+  
+  // Acqua
+  var whtml = '';
+  for(var i=0; i<8; i++){
+    var on = i < h.water ? 'on' : '';
+    whtml += '<button class="drop '+on+'" data-a="water" data-v="'+(i+1)+'">💧</button>';
+  }
+  $('water-ui').innerHTML = whtml;
+  
+  // Passi
+  $('steps-in').value = h.steps || '';
+  renderStepsReward(h.steps);
+}
+
+function renderStepsReward(s){
+  if(!s || s === 0) { $('steps-res').innerHTML = ''; return; }
+  var r = '';
+  if(s < 3000) r = '💧 Un bel bicchiere d\'acqua';
+  else if(s < 6000) r = '☕ Un cappuccino (150 kcal)';
+  else if(s < 10000) r = '🍦 Un gelato (300 kcal)';
+  else if(s < 15000) r = '🍕 Una bella pizza (700 kcal)';
+  else r = '🍔 Un hamburger con patatine (oltre 1000 kcal!)';
+  $('steps-res').innerHTML = '<div class="reward-box"><span>'+r+'</span><small>Calcolato su '+s+' passi</small></div>';
+}
+
+function renderChart(){
+  if(!window.Chart || !$('weightChart') || view !== 'salute') return;
+  var ctx = $('weightChart').getContext('2d');
+  if(wChart) wChart.destroy();
+  
+  var data = S.weights.sort(function(a,b){return new Date(a.d) - new Date(b.d)});
+  var labels = data.map(function(x){return new Date(x.d).toLocaleDateString('it-IT', {day:'numeric', month:'short'})});
+  var points = data.map(function(x){return x.w});
+  
+  var color = getComputedStyle(document.documentElement).getPropertyValue('--a').trim() || '#6366f1';
+  var txtColor = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#171717';
+  
+  wChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Peso (kg)',
+        data: points,
+        borderColor: color,
+        backgroundColor: color + '33',
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: txtColor } },
+        y: { ticks: { color: txtColor } }
+      }
+    }
+  });
+}
+
 function renderSet(){
   $('who').textContent=(S.name?'Ciao, '+S.name+'. ':'')+'I tuoi dati restano sul dispositivo.';
   $('wk').innerHTML=LET.map(function(n,i){return '<label>'+n+'<input class="in" type="number" min="0" max="16" step="0.5" inputmode="decimal" data-wd="'+i+'" value="'+S.week[i]+'" aria-label="Ore libere di '+DOW[i]+'"></label>'}).join('');
   $('off').innerHTML=S.off.map(function(d){return '<button class="chip" data-a="deloff" data-d="'+d+'" aria-label="Rimuovi '+dl(parse(d))+'">'+dl(parse(d))+' ✕</button>'}).join('');
 }
-function renderAll(){renderToday();renderPiano();renderSet()}
+function renderAll(){renderToday();renderPiano();renderSet();}
 
 function go(t){
   view=t;
-  ['oggi','piano','imp'].forEach(function(n){
+  ['oggi','piano','salute','imp'].forEach(function(n){
     var el = $('v-'+n);
     if(n === t) {
       el.hidden = false;
@@ -167,11 +240,13 @@ function go(t){
   });
   
   document.querySelectorAll('.tabs button').forEach(function(b){b.setAttribute('aria-current',String(b.dataset.t===t))});
-  $('tt').textContent={oggi:'Oggi',piano:'Piano',imp:'Menu'}[t];
+  $('tt').textContent={oggi:'Oggi',piano:'Piano',salute:'Salute',imp:'Menu'}[t];
   $('ts').textContent=t==='oggi'?dlong(tdy()):'';$('ts').hidden=t!=='oggi';
   $('addb').hidden=t!=='piano';
   $('v-'+t).scrollTop=0;
-  if(t==='piano')renderPiano();
+  
+  if(t==='piano') renderPiano();
+  if(t==='salute') { renderHealth(); setTimeout(renderChart, 150); }
 }
 
 function openSheet(id){
@@ -179,6 +254,10 @@ function openSheet(id){
   $('sh-t').textContent=g?'Modifica obiettivo':'Nuovo obiettivo';
   $('sn').value=g?g.name:''; $('sd').value=g?g.due:fmt(addDays(tdy(),30));
   $('sd').min = fmt(tdy());
+  
+  var cat = g && g.cat ? g.cat : 'study';
+  $('sg-cat').value = cat;
+  document.querySelectorAll('.cat-btn').forEach(function(btn){ btn.classList.toggle('active', btn.dataset.c === cat); });
   
   $('sdel').hidden=!g; $('sdel').textContent='Elimina'; delete $('sdel').dataset.armed;
   $('sdone').hidden=!g; $('sdone').textContent=g&&g.completed?'Segna In Corso':'Segna Completato';
@@ -188,7 +267,7 @@ function openSheet(id){
 
 function closeSheet(){$('sheet').classList.remove('open');clearTimeout(shT);shT=setTimeout(function(){$('sheet').hidden=true},400)}
 
-// TOUR GUIDATO (Ripristinato)
+// ONBOARDING (Mantenuto Intatto)
 var TOUR=[
   {t:'oggi',el:'.hero',h:'La sfera',p:'Mostra il tuo progresso giornaliero sulle priorità.'},
   {t:'oggi',el:'#tg',h:'Priorità',p:'L\'app ti dice su cosa focalizzarti oggi (massimo 1 ora a materia). Tocca quando hai fatto.'},
@@ -207,7 +286,6 @@ function tourShow(){
 function tourStart(){TI=0;tourShow()}
 function tourEnd(){tourClear();$('tour').hidden=true;document.body.classList.remove('touring');S.tour=1;save();go('oggi')}
 
-// ONBOARDING (Ripristinato)
 function stp(k,l){return '<div class="stp"><span>'+l+'</span><div><button class="btn" data-a="ostep" data-k="'+k+'" data-d="-0.5" aria-label="Meno">−</button><b>'+fh(O[k])+'</b><button class="btn" data-a="ostep" data-k="'+k+'" data-d="0.5" aria-label="Più">+</button></div></div>'}
 function onbStart(){O={step:0,name:'',wd:2,we:3,gn:'',gd:fmt(addDays(tdy(),30))};$('onb').hidden=false;onbRender()}
 
@@ -215,7 +293,7 @@ function onbRender(){
   var s=O.step,h='',f='',d='',i,bk='<button class="btn" data-a="oback">Indietro</button>';
   for(i=0;i<4;i++)d+='<i'+(i<=s?' class="on"':'')+'></i>';
   if(s===0){
-    h='<div class="ob-orb"><div class="core" style="--lit:1;inset:0"></div></div><h1 class="ob-h">Fai quello che conta, senza stress</h1><p class="sub">Scrivi i tuoi esami o progetti. Glow Up decide per te le priorità del giorno (massimo 1h a materia) per farti arrivare sereno alla scadenza.</p>';
+    h='<div class="ob-orb"><div class="core" style="--lit:1;inset:0"></div></div><h1 class="ob-h">Fai quello che conta, senza stress</h1><p class="sub">Scrivi i tuoi esami o progetti. Glow Up decide per te le priorità del giorno per farti arrivare sereno alla scadenza.</p>';
     f='<button class="btn pri" data-a="onext">Inizia</button>';
   }else if(s===1){
     h='<h1 class="ob-h">Come ti chiami?</h1><input class="in" id="on-n" value="'+esc(O.name)+'" maxlength="30" placeholder="Il tuo nome" autocomplete="given-name"><p class="sub" style="margin-top:14px">I tuoi dati restano al sicuro su questo dispositivo.</p>';
@@ -245,7 +323,7 @@ function onbAct(a,b){
     if(O.step<3){O.step++;onbRender();return true}
     
     S.name=O.name; S.week=[O.wd,O.wd,O.wd,O.wd,O.wd,O.we,O.we];
-    if(a==='onext') S.goals.push({id:'g'+Date.now().toString(36),name:O.gn,due:O.gd,completed:false});
+    if(a==='onext') S.goals.push({id:'g'+Date.now().toString(36),name:O.gn,due:O.gd,completed:false,cat:'study'});
     
     S.onb=1; save(); $('onb').hidden=true; renderAll(); go('oggi'); tourStart(); return true;
   }
@@ -255,7 +333,7 @@ function onbAct(a,b){
   return false;
 }
 
-// Listeners principali
+// Listeners
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-a]');if(!b)return;
   var a=b.dataset.a;
@@ -267,11 +345,16 @@ document.addEventListener('click',function(e){
   else if(a==='newg')openSheet();
   else if(a==='editg')openSheet(b.dataset.g);
   else if(a==='close')closeSheet();
+  else if(a==='selcat'){
+    document.querySelectorAll('.cat-btn').forEach(function(btn){ btn.classList.remove('active') });
+    b.classList.add('active');
+    $('sg-cat').value = b.dataset.c;
+  }
   else if(a==='save'){
-    var n=$('sn').value.trim(), dd=$('sd').value;
+    var n=$('sn').value.trim(), dd=$('sd').value, cat=$('sg-cat').value;
     if(!n||!dd){ showToast('Inserisci nome e data.', '⚠️'); return; }
     var g=edId?S.goals.find(function(x){return x.id===edId}):null;
-    if(g){g.name=n; g.due=dd} else S.goals.push({id:'g'+Date.now().toString(36),name:n,due:dd,completed:false});
+    if(g){g.name=n; g.due=dd; g.cat=cat;} else S.goals.push({id:'g'+Date.now().toString(36),name:n,due:dd,completed:false,cat:cat});
     save(); closeSheet(); renderAll(); showToast('Salvato correttamente', '✅');
   }
   else if(a==='delg'){
@@ -288,6 +371,29 @@ document.addEventListener('click',function(e){
     else delete w[id];
     save();renderToday();renderPiano();
   }
+  // Salute Listeners
+  else if(a==='water'){
+    var k = fmt(tdy());
+    var v = parseInt(b.dataset.v);
+    if(S.health[k].water === v) v--; // Deseleziona se clicchi quello attuale
+    S.health[k].water = v;
+    save(); renderHealth();
+  }
+  else if(a==='savesteps'){
+    var k = fmt(tdy());
+    var v = parseInt($('steps-in').value) || 0;
+    S.health[k].steps = v;
+    save(); renderHealth(); showToast('Passi aggiornati!', '👟');
+  }
+  else if(a==='saveweight'){
+    var v = parseFloat($('weight-in').value);
+    if(!v) return;
+    var k = fmt(tdy());
+    var ex = S.weights.find(function(x){return x.d === k});
+    if(ex) ex.w = v; else S.weights.push({d: k, w: v});
+    save(); renderHealth(); renderChart(); showToast('Peso salvato!', '⚖️');
+  }
+  // Menu Listeners
   else if(a==='addoff'){var d=$('offd').value;if(d&&S.off.indexOf(d)<0){S.off.push(d);S.off.sort();save();renderAll(); showToast('Giorno aggiunto', '🗓️');}}
   else if(a==='deloff'){S.off=S.off.filter(function(d){return d!==b.dataset.d});save();renderAll();}
   else if(a==='exp'){
