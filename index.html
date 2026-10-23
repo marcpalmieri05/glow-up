@@ -15,7 +15,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<!-- Libreria per il Grafico del Peso -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -25,13 +24,21 @@
 <div class="app">
   <header class="top">
     <div><h1 id="tt">Oggi</h1><p id="ts"></p></div>
-    <button class="plus" id="addb" data-a="newg" aria-label="Nuovo obiettivo" hidden>+</button>
+    <div id="lvl-badge" class="lvl-badge">Lvl 1</div>
+    <button class="plus" id="addb" data-a="newg" aria-label="Nuovo">+</button>
   </header>
   
   <main class="views">
     <!-- VISTA OGGI -->
     <div class="view" id="v-oggi">
-      <div class="hero" aria-live="polite">
+      
+      <!-- Vision Board / Motto -->
+      <div class="motto-box" data-a="edit-motto">
+        <span id="motto-text">Qual è il tuo grande perché?</span>
+        <small>✨ Tocca qui per scrivere la tua motivazione</small>
+      </div>
+
+      <div class="hero" aria-live="polite" style="margin-top:0;">
         <div class="orb" id="orb">
           <svg viewBox="0 0 208 208" aria-hidden="true">
             <defs>
@@ -44,34 +51,52 @@
           </svg>
           <div class="core"></div>
         </div>
-        <div class="ht"><p class="big" id="big"></p><p class="lbl" id="lbl"></p><p class="meta" id="meta"></p></div>
+        <div class="ht">
+          <p class="big" id="big"></p>
+          <p class="lbl" id="lbl"></p>
+          <p class="meta" id="meta"></p>
+          <button class="btn" data-a="share" style="margin-top:12px; font-size:0.85rem; padding:8px 16px; border-radius:20px;">📤 Condividi</button>
+        </div>
       </div>
-      <div class="sec"><h2>Da fare oggi</h2><div id="tg"></div></div>
+      
+      <!-- Timer -->
+      <button class="btn pri timer-trigger" data-a="open-timer">⏱️ Avvia Focus Timer (25 min)</button>
+
+      <div class="sec" style="margin-top:24px;"><h2>Da fare oggi</h2><div id="tg"></div></div>
     </div>
 
     <!-- VISTA PIANO -->
     <div class="view" id="v-piano" hidden>
-      <div class="sec"><h2>Consigli del giorno</h2><div id="vd"></div></div>
-      <div class="sec"><h2>Obiettivi in corso</h2><div id="gl"></div></div>
+      <div class="sec"><h2>Le tue Abitudini</h2><p class="sub">Azioni che ripeti ogni giorno.</p><div id="hl" style="margin-top:12px"></div></div>
+      <div class="sec"><h2>Obiettivi a Lungo Termine</h2><p class="sub">Progetti o esami con una data di scadenza.</p><div id="gl" style="margin-top:12px"></div></div>
       <div class="sec" id="sec-comp" hidden>
         <details>
-          <summary>Obiettivi Completati 🎉</summary>
+          <summary>Completati 🎉</summary>
           <div id="gl-comp" style="margin-top:12px"></div>
         </details>
       </div>
-      <div class="sec" id="ndsec"><h2>Prossimi giorni</h2><div id="nd"></div></div>
+      <div class="sec" id="ndsec"><h2>Programmazione Obiettivi</h2><div id="nd"></div></div>
     </div>
 
-    <!-- NUOVA VISTA SALUTE -->
+    <!-- VISTA SALUTE -->
     <div class="view" id="v-salute" hidden>
       <div class="sec">
-        <h2>Idratazione (Acqua)</h2>
-        <p class="sub">Tocca per bere. L'obiettivo è di 2 litri al giorno (8 bicchieri).</p>
-        <div id="water-ui" class="water-grid"></div>
+        <h2>Idratazione</h2>
+        <div class="water-status">
+          <h3 style="margin:0;"><span id="w-tot">0</span> / 2000 ml</h3>
+          <div class="w-bar"><div class="w-fill" id="w-fill"></div></div>
+        </div>
+        <div class="water-grid">
+          <button class="w-btn" data-a="addwater" data-v="250">🥛<br>250 ml<br><small>Bicchiere</small></button>
+          <button class="w-btn" data-a="addwater" data-v="500">🍼<br>500 ml<br><small>Mezzo Litro</small></button>
+          <button class="w-btn" data-a="addwater" data-v="1000">💧<br>1000 ml<br><small>1 Litro</small></button>
+          <button class="w-btn" data-a="addwater" data-v="2000">🚰<br>2000 ml<br><small>2 Litri</small></button>
+        </div>
+        <div style="margin-top:16px; text-align:center;"><button class="btn" data-a="resetwater">Azzera Acqua di Oggi</button></div>
       </div>
       <div class="sec">
         <h2>Passi & Ricompensa</h2>
-        <p class="sub">Inserisci i passi fatti oggi (es. dal tuo smartwatch) per scoprire cosa hai bruciato.</p>
+        <p class="sub">Inserisci i passi fatti oggi per scoprire cosa hai bruciato (e guadagnare XP!).</p>
         <div class="hnew">
           <input class="in" id="steps-in" type="number" placeholder="Es. 8500" aria-label="Passi">
           <button class="btn pri" data-a="savesteps">Calcola</button>
@@ -79,13 +104,42 @@
         <div id="steps-res"></div>
       </div>
       <div class="sec">
-        <h2>Andamento del Peso</h2>
-        <p class="sub">Aggiorna il tuo peso e osserva i progressi nel tempo.</p>
+        <h2>Aggiorna Peso</h2>
+        <p class="sub">Registra il tuo peso attuale. Troverai il grafico nelle Statistiche.</p>
         <div class="hnew">
-          <input class="in" id="weight-in" type="number" step="0.1" placeholder="Es. 70.5 (kg)" aria-label="Peso">
-          <button class="btn pri" data-a="saveweight">Aggiungi</button>
+          <input class="in" id="weight-in" type="number" step="0.1" placeholder="Es. 70.5" aria-label="Peso">
+          <button class="btn pri" data-a="saveweight">Salva</button>
         </div>
-        <div class="chart-container" style="position: relative; height:35vh; width:100%; margin-top:24px;">
+      </div>
+    </div>
+
+    <!-- VISTA STATISTICHE -->
+    <div class="view" id="v-stats" hidden>
+      <div class="sec" style="margin-bottom:16px;">
+        <h2>🔄 Costanza Abitudini</h2>
+        <p class="sub">La tua regolarità negli ultimi 7 giorni.</p>
+        <div class="stat-box" style="margin-top:12px;">
+          <span class="stat-val" id="st-habits">0%</span>
+        </div>
+      </div>
+      <div class="sec" style="margin-bottom:16px;">
+        <h2>🎯 Obiettivi Completati</h2>
+        <p class="sub">Il totale dei traguardi raggiunti finora.</p>
+        <div class="stat-box" style="margin-top:12px;">
+          <span class="stat-val" id="st-goals">0</span>
+        </div>
+      </div>
+      <div class="sec" style="margin-bottom:16px;">
+        <h2>🚶‍♂️ Andamento Passi</h2>
+        <p class="sub">I tuoi passi negli ultimi 7 giorni.</p>
+        <div class="chart-container" style="position:relative; height:25vh; width:100%; margin-top:12px;">
+          <canvas id="stepsChart"></canvas>
+        </div>
+      </div>
+      <div class="sec">
+        <h2>📉 Andamento Peso</h2>
+        <p class="sub">Come varia il tuo peso nel tempo.</p>
+        <div class="chart-container" style="position:relative; height:25vh; width:100%; margin-top:12px;">
           <canvas id="weightChart"></canvas>
         </div>
       </div>
@@ -93,7 +147,7 @@
 
     <!-- VISTA MENU -->
     <div class="view" id="v-imp" hidden>
-      <div class="sec"><h2>Profilo</h2><p class="sub" id="who"></p><div class="btns" style="margin-top:14px"><button class="btn" data-a="tour">Rivedi il tutorial</button></div></div>
+      <div class="sec"><h2>Profilo</h2><h3 class="who-title" id="who-t"></h3><p class="sub">I tuoi dati restano sul dispositivo.</p><div class="btns" style="margin-top:14px"><button class="btn" data-a="reset-tour">Rivedi i tutorial</button></div></div>
       <div class="sec">
         <h2>Aspetto</h2>
         <div class="btns">
@@ -103,19 +157,19 @@
         </div>
       </div>
       <div class="sec">
-        <h2>Ore libere</h2>
-        <p class="sub" style="margin-bottom:14px">Quante ore puoi dedicare ai tuoi obiettivi in ogni giorno.</p>
+        <h2>Ore libere per Obiettivi</h2>
+        <p class="sub" style="margin-bottom:14px">Quante ore puoi dedicare ai tuoi obiettivi a lungo termine ogni giorno.</p>
         <div class="wk7" id="wk"></div>
       </div>
       <div class="sec">
-        <h2>Giorni senza ore</h2>
+        <h2>Giorni senza ore (Es. Vacanza)</h2>
         <div class="hnew"><input class="in" id="offd" type="date" aria-label="Giorno senza ore"><button class="btn pri" data-a="addoff">Aggiungi</button></div>
         <div class="chips" id="off"></div>
       </div>
       <div class="sec">
         <details>
           <summary>Backup e dati</summary>
-          <p class="sub">I dati restano su questo dispositivo. Crea un backup per spostarli su un altro.</p>
+          <p class="sub">Crea un backup per spostare i dati su un altro dispositivo.</p>
           <textarea class="in" id="bk" aria-label="Testo del backup" placeholder="Qui compare il backup. Per importarlo, incollalo qui."></textarea>
           <div class="btns"><button class="btn" data-a="exp">Crea backup</button><button class="btn" data-a="imp">Importa</button><button class="btn" data-a="reset">Ricomincia da capo</button></div>
         </details>
@@ -124,34 +178,88 @@
   </main>
 
   <nav class="tabs" aria-label="Sezioni">
-    <button data-a="tab" data-t="oggi" aria-current="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></svg><span>Oggi</span></button>
-    <button data-a="tab" data-t="piano"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Piano</span></button>
-    <button data-a="tab" data-t="salute"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>Salute</span></button>
-    <button data-a="tab" data-t="imp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>Menu</span></button>
+    <button data-a="tab" data-t="oggi" aria-current="true">
+      <div style="position:relative;">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></svg>
+        <div class="bdg" id="bdg-oggi" hidden></div>
+      </div>
+      <span>Oggi</span>
+    </button>
+    <button data-a="tab" data-t="piano">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      <span>Piano</span>
+    </button>
+    <button data-a="tab" data-t="salute">
+      <div style="position:relative;">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <div class="bdg" id="bdg-salute" hidden></div>
+      </div>
+      <span>Salute</span>
+    </button>
+    <button data-a="tab" data-t="stats">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      <span>Stat</span>
+    </button>
+    <button data-a="tab" data-t="imp">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+      <span>Menu</span>
+    </button>
   </nav>
 </div>
 
-<!-- Onboarding e Tutorial -->
-<div class="onb" id="onb" hidden></div>
-<div class="tour" id="tour" hidden role="dialog" aria-live="polite"><b id="tr-h"></b><p id="tr-p"></p><div class="tr-f"><span id="tr-n"></span><span><button class="btn" data-a="tskip">Salta</button> <button class="btn pri" id="tnext" data-a="tnext">Avanti</button></span></div></div>
+<!-- Modal: Timer Pomodoro -->
+<div class="sheet" id="timer-sheet" hidden>
+  <div class="scrim" data-a="close-timer"></div>
+  <div class="panel" style="text-align:center;">
+    <h2 style="margin-bottom:8px;">Focus Timer</h2>
+    <p class="sub" style="margin-bottom:24px;">Posa il telefono. Concentrati fino alla fine per guadagnare +50 XP!</p>
+    <div id="timer-disp" style="font-size:4.5rem; font-weight:700; color:var(--a); font-variant-numeric:tabular-nums; margin-bottom:24px;">25:00</div>
+    <div class="btns" style="justify-content:center;">
+      <button class="btn pri" id="timer-btn" data-a="timer-toggle" style="min-width:120px;">Avvia</button>
+      <button class="btn" data-a="close-timer">Esci</button>
+    </div>
+  </div>
+</div>
 
-<!-- Modal: Nuovo Obiettivo / Allenamento -->
+<div class="onb" id="onb" hidden></div>
+
+<div class="ctx-tour" id="ctx-tour" hidden>
+  <div class="scrim"></div>
+  <div class="ctx-box">
+    <div class="ctx-icn" id="ctx-icn"></div>
+    <h3 id="ctx-h"></h3>
+    <p id="ctx-p"></p>
+    <button class="btn pri" data-a="ctx-ok" style="width:100%">Ho capito</button>
+  </div>
+</div>
+
 <div class="sheet" id="sheet" hidden>
   <div class="scrim" data-a="close"></div>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sh-t">
     <div class="grab"></div>
     <h2 id="sh-t"></h2>
     
+    <label style="margin-bottom:16px; display:block;"><span class="lb">Natura dell'impegno</span>
+      <div class="cat-sel">
+        <button class="btn type-btn active" data-a="seltype" data-t="goal">🎯 Obiettivo (Scadenza)</button>
+        <button class="btn type-btn" data-a="seltype" data-t="habit">🔁 Abitudine (Giornaliera)</button>
+      </div>
+      <input type="hidden" id="sg-type" value="goal">
+    </label>
+
     <label style="margin-bottom:16px; display:block;"><span class="lb">Categoria</span>
       <div class="cat-sel">
         <button class="btn cat-btn active" data-a="selcat" data-c="study">📚 Studio/Lavoro</button>
-        <button class="btn cat-btn" data-a="selcat" data-c="fitness">🏃‍♂️ Allenamento</button>
+        <button class="btn cat-btn" data-a="selcat" data-c="fitness">🏃‍♂️ Fitness/Salute</button>
       </div>
       <input type="hidden" id="sg-cat" value="study">
     </label>
 
-    <label><span class="lb">Nome Obiettivo</span><input class="in" id="sn" placeholder="Es. Preparare Esame o Corsa 5km" maxlength="40"></label>
-    <label style="margin-top:16px"><span class="lb">Entro quando</span><input class="in" id="sd" type="date"></label>
+    <label><span class="lb">Cosa vuoi fare?</span><input class="in" id="sn" placeholder="Es. Preparare Esame o Fare 50 Flessioni" maxlength="40"></label>
+    
+    <div id="wrap-due">
+      <label style="margin-top:16px"><span class="lb">Entro quando (Solo per Obiettivi)</span><input class="in" id="sd" type="date"></label>
+    </div>
     
     <div class="btns" style="margin-top:24px">
       <button class="btn pri" style="flex:1" data-a="save">Salva</button>
